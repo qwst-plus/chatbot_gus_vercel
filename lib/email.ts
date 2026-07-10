@@ -14,7 +14,7 @@ export async function sendPasswordResetEmail(
   const resend = getResendClient();
   const from = process.env.EMAIL_FROM ?? "no-reply@example.com";
 
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from,
     to,
     subject: "【RAG Chatbot】パスワード再設定のご案内",
@@ -24,4 +24,6 @@ export async function sendPasswordResetEmail(
       `${resetUrl}\n\n` +
       `このリクエストに心当たりがない場合は、このメールを破棄してください。`,
   });
+
+  if (error) throw new Error(`Resend送信エラー: ${error.message}`);
 }
