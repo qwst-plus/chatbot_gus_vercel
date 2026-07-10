@@ -1,0 +1,40 @@
+// app/(shell)/layout.tsx
+import { cookies } from "next/headers";
+import { AppShell } from "@/components/AppShell";
+import type { NavItem } from "@/components/AppSidebar";
+import { verifySessionValue } from "@/lib/auth";
+import { getUserById } from "@/lib/credentials";
+
+// 旭川ガスのアカウントには不要（社内の開発・動作確認用）
+const internalOnlyItems: NavItem[] = [
+  { title: "埋め込みプレビュー", href: "/embed", icon: "puzzle", external: true },
+  { title: "チャット", href: "/chat", icon: "chat" },
+];
+
+const baseItems: NavItem[] = [
+  { title: "ファイル管理", href: "/ingest", icon: "file" },
+  { title: "Webサイト管理", href: "/websites", icon: "globe" },
+  { title: "運用ダッシュボード", href: "/dashboard", icon: "chart" },
+];
+
+const accountsItem: NavItem = { title: "アカウント管理", href: "/dashboard/accounts", icon: "users" };
+
+export default async function ShellLayout({ children }: { children: React.ReactNode }) {
+  const sessionCookie = (await cookies()).get("session")?.value;
+  const session = await verifySessionValue(sessionCookie);
+  const user = session ? await getUserById(session.userId) : null;
+
+  const items: NavItem[] = [
+    ...(user?.role === "asahikawa-gas" ? [] : internalOnlyItems),
+    ...baseItems,
+    ...(user?.is_admin ? [accountsItem] : []),
+  ];
+
+  const displayName = user?.name || (user?.role === "asahikawa-gas" ? "旭川ガス" : "クウェスト");
+
+  return (
+    <AppShell items={items} displayName={displayName}>
+      {children}
+    </AppShell>
+  );
+}
