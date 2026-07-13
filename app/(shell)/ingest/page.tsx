@@ -81,12 +81,13 @@ export default function IngestPage() {
     const selected = Array.from(e.target.files ?? []);
     if (selected.length === 0) return;
 
-    const pdfs = selected.filter(
-      (f) => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
+    const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".txt"];
+    const pdfs = selected.filter((f) =>
+      ALLOWED_EXTENSIONS.some((ext) => f.name.toLowerCase().endsWith(ext))
     );
 
     if (pdfs.length === 0) {
-      setStatus("PDFファイルが選択されていません。");
+      setStatus("対応形式（PDF / Word / テキスト）のファイルが選択されていません。");
       e.target.value = "";
       return;
     }
@@ -206,7 +207,7 @@ export default function IngestPage() {
         <section className="mb-6 rounded-3xl border border-border bg-card p-5 shadow-sm">
           <div className="mb-2 text-sm font-semibold text-foreground">アップロード</div>
           <p className="text-sm text-muted-foreground">
-            PDFをアップロードすると自動でチャンク化・ベクトル化してSupabaseに保存されます。
+            PDF / Word（.docx）/ テキスト（.txt）をアップロードすると自動でチャンク化・ベクトル化してSupabaseに保存されます。
           </p>
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -217,7 +218,7 @@ export default function IngestPage() {
             >
               <input
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.docx,.txt"
                 multiple
                 onChange={uploadFile}
                 disabled={loading}
