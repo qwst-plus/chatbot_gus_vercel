@@ -9,8 +9,9 @@ export type RagChunk = {
 
 const EXCHANGE_RATE = 155;
 
-// 月間APIコストの予算（円）。ダッシュボードの予算使用率表示にも使用
-export const MONTHLY_BUDGET_JPY = 35_000;
+// 月間APIコストの上限（円）。クウェスト向け原価内訳ウィジェットの70%/90%アラートに使用。
+// 上限を超えてもリクエストは止めない（監視のみ）
+export const MONTHLY_BUDGET_JPY = 6_000;
 
 // 旭川ガス向けの月間リクエスト上限（1リクエスト=1ユーザーメッセージ）。毎月1日にリセット
 export const MONTHLY_REQUEST_QUOTA = 5_000;

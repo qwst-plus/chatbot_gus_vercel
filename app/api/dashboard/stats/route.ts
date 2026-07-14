@@ -46,7 +46,6 @@ export async function GET(req: NextRequest) {
       modeHistory,
       modelUsageRows,
       cacheStatsRows,
-      costStatsRows,
       inputMethodRows,
       curMonthRequestCount,
     ] = await Promise.all([
@@ -123,10 +122,10 @@ export async function GET(req: NextRequest) {
         .lt("started_at", endDate)
         .order("started_at", { ascending: false }),
 
-      // 10. モデル使用比率（スマートルーティング）
+      // 10. モデル使用比率・モデル別原価内訳（スマートルーティング）
       supabaseAdmin
         .from("messages")
-        .select("model_used")
+        .select("model_used, estimated_cost_jpy")
         .eq("role", "assistant")
         .not("model_used", "is", null)
         .gte("created_at", startDate)
@@ -138,15 +137,6 @@ export async function GET(req: NextRequest) {
         .select("cache_hit, cache_read_tokens")
         .eq("role", "assistant")
         .not("cache_hit", "is", null)
-        .gte("created_at", startDate)
-        .lt("created_at", endDate),
-
-      // 12. コスト統計
-      supabaseAdmin
-        .from("messages")
-        .select("estimated_cost_jpy")
-        .eq("role", "assistant")
-        .not("estimated_cost_jpy", "is", null)
         .gte("created_at", startDate)
         .lt("created_at", endDate),
 
@@ -288,15 +278,23 @@ export async function GET(req: NextRequest) {
       ended_at: row.ended_at as string | null,
     }));
 
-    // ── モデル使用比率 ────────────────────────────────────────
-    const modelMap: Record<string, number> = {};
-    for (const row of modelUsageRows.data ?? []) {
-      const m = (row.model_used as string | null) ?? "unknown";
-      modelMap[m] = (modelMap[m] ?? 0) + 1;
+    // ── モデル使用比率・モデル別原価内訳 ──────────────────────
+    // 対象はGemini 2.5 Flash-Lite / Flashの2種類のみ（クウェスト社内アカウント向け）
+    const modelRows = modelUsageRows.data ?? [];
+    let flashLiteCount = 0, flashCount = 0;
+    let flashLiteCostJpy = 0, flashCostJpy = 0;
+    for (const row of modelRows) {
+      const m = row.model_used as string | null;
+      const cost = Number(row.estimated_cost_jpy) || 0;
+      if (m === "gemini-2.5-flash-lite") {
+        flashLiteCount++;
+        flashLiteCostJpy += cost;
+      } else if (m === "gemini-2.5-flash") {
+        flashCount++;
+        flashCostJpy += cost;
+      }
     }
-    const flashLiteCount = modelMap["gemini-2.5-flash-lite"] ?? 0;
-    const flashCount     = modelMap["gemini-2.5-flash"] ?? 0;
-    const modelTotal     = flashLiteCount + flashCount;
+    const modelTotal = flashLiteCount + flashCount;
     const modelUsage = {
       flashLite:     flashLiteCount,
       flash:         flashCount,
@@ -313,10 +311,9 @@ export async function GET(req: NextRequest) {
       savedTokens,
     };
 
-    // ── コスト統計 ────────────────────────────────────────────
-    const costRows = costStatsRows.data ?? [];
-    const totalCostJpy  = costRows.reduce((s, r) => s + (Number(r.estimated_cost_jpy) || 0), 0);
-    const avgCostPerChat = costRows.length > 0 ? totalCostJpy / costRows.length : 0;
+    // ── コスト統計（Flash-Lite / Flashの原価内訳） ────────────
+    const totalCostJpy  = flashLiteCostJpy + flashCostJpy;
+    const avgCostPerChat = modelTotal > 0 ? totalCostJpy / modelTotal : 0;
 
     // 月末までの推定（日割り外挿）
     const now2 = new Date();
@@ -329,9 +326,11 @@ export async function GET(req: NextRequest) {
       : totalCostJpy;
 
     const costStats = {
-      totalCostJpy:     Math.round(totalCostJpy * 10) / 10,
-      avgCostPerChat:   Math.round(avgCostPerChat * 1000) / 1000,
+      totalCostJpy:      Math.round(totalCostJpy * 10) / 10,
+      avgCostPerChat:    Math.round(avgCostPerChat * 1000) / 1000,
       estimatedMonthly,
+      flashLiteCostJpy:  Math.round(flashLiteCostJpy * 10) / 10,
+      flashCostJpy:      Math.round(flashCostJpy * 10) / 10,
     };
     // ── リクエスト残量（旭川ガス向け。今月のユーザーメッセージ数=リクエスト数） ──
     const requestUsed = curMonthRequestCount.count ?? 0;

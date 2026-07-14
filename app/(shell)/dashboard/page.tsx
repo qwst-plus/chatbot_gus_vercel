@@ -42,7 +42,7 @@ type StatsResponse = {
   daily_emergency_trend: { date: string; count: number }[]
   model_usage?: { flashLite: number; flash: number; flashLiteRate: number }
   cache_stats?: { hitCount: number; hitRate: number; savedTokens: number }
-  cost_stats?: { totalCostJpy: number; avgCostPerChat: number; estimatedMonthly: number }
+  cost_stats?: { totalCostJpy: number; avgCostPerChat: number; estimatedMonthly: number; flashLiteCostJpy: number; flashCostJpy: number }
   input_method_stats?: { voice: number; text: number; voiceRate: number }
   request_quota?: RequestQuota
 }
@@ -200,8 +200,10 @@ export default function DashboardPage() {
     if (s.cost_stats) {
       csvRows.push(
         [],
-        ["■ APIコスト統計"],
-        ["当月コスト(円)", s.cost_stats.totalCostJpy],
+        ["■ モデル別原価内訳"],
+        ["Flash-Lite コスト(円)", s.cost_stats.flashLiteCostJpy],
+        ["Flash コスト(円)", s.cost_stats.flashCostJpy],
+        ["当月コスト合計(円)", s.cost_stats.totalCostJpy],
         ["1会話あたり平均コスト(円)", s.cost_stats.avgCostPerChat],
         ["月末推定コスト(円)", s.cost_stats.estimatedMonthly],
       )

@@ -19,6 +19,8 @@ export type SmartRoutingStats = {
     totalCostJpy: number
     avgCostPerChat: number
     estimatedMonthly: number
+    flashLiteCostJpy: number
+    flashCostJpy: number
   }
   inputMethodStats: {
     voice: number
@@ -31,14 +33,14 @@ export type SmartRoutingStats = {
 export function SmartRoutingKpiCards({ stats }: { stats: SmartRoutingStats }) {
   const { modelUsage, cacheStats, costStats, inputMethodStats } = stats
 
-  // 月間コストのアラート色（70%→黄、80%→赤）
+  // 月間コストのアラート色（70%→黄、90%→赤。上限超過でもリクエストは止めない・監視のみ）
   const budgetRatio = costStats.estimatedMonthly / MONTHLY_BUDGET_JPY
   const costColor =
-    budgetRatio >= 0.8 ? "text-red-600" :
+    budgetRatio >= 0.9 ? "text-red-600" :
     budgetRatio >= 0.7 ? "text-amber-600" :
     "text-foreground"
   const costBg =
-    budgetRatio >= 0.8 ? "bg-red-500/5" :
+    budgetRatio >= 0.9 ? "bg-red-500/5" :
     budgetRatio >= 0.7 ? "bg-amber-500/5" :
     ""
 
@@ -108,29 +110,33 @@ export function SmartRoutingKpiCards({ stats }: { stats: SmartRoutingStats }) {
         </CardContent>
       </Card>
 
-      {/* カード③：月間推定APIコスト */}
+      {/* カード③：モデル別原価内訳（月間推定APIコスト） */}
       <Card className={`border-border/60 ${costBg}`}>
         <CardContent className="p-5">
           <div className="flex items-start justify-between">
             <div className="flex flex-col gap-1">
-              <span className="text-xs font-medium text-muted-foreground tracking-wide">月間 API コスト（推定）</span>
+              <span className="text-xs font-medium text-muted-foreground tracking-wide">モデル別原価内訳（今月）</span>
               <div className="flex items-baseline gap-1">
                 <span className={`text-2xl font-bold tracking-tight ${costColor}`}>
                   ¥{costStats.totalCostJpy.toLocaleString("ja-JP")}
                 </span>
               </div>
             </div>
-            <div className={`rounded-lg p-2.5 ${budgetRatio >= 0.8 ? "bg-red-500/10" : budgetRatio >= 0.7 ? "bg-amber-500/10" : "bg-primary/10"}`}>
-              <CircleDollarSign className={`h-5 w-5 ${budgetRatio >= 0.8 ? "text-red-600" : budgetRatio >= 0.7 ? "text-amber-600" : "text-primary"}`} />
+            <div className={`rounded-lg p-2.5 ${budgetRatio >= 0.9 ? "bg-red-500/10" : budgetRatio >= 0.7 ? "bg-amber-500/10" : "bg-primary/10"}`}>
+              <CircleDollarSign className={`h-5 w-5 ${budgetRatio >= 0.9 ? "text-red-600" : budgetRatio >= 0.7 ? "text-amber-600" : "text-primary"}`} />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-1.5">
+          <div className="mt-3 flex justify-between text-xs">
+            <span className="text-emerald-600 font-medium">Flash-Lite ¥{costStats.flashLiteCostJpy.toLocaleString("ja-JP")}</span>
+            <span className="text-blue-600 font-medium">Flash ¥{costStats.flashCostJpy.toLocaleString("ja-JP")}</span>
+          </div>
+          <div className="mt-2 flex items-center gap-1.5">
             <span className={`text-xs font-semibold ${costColor}`}>
               月末推定：¥{costStats.estimatedMonthly.toLocaleString("ja-JP")}
             </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            1会話あたり平均 ¥{costStats.avgCostPerChat.toFixed(3)} / 予算 ¥{MONTHLY_BUDGET_JPY.toLocaleString("ja-JP")}
+            1会話あたり平均 ¥{costStats.avgCostPerChat.toFixed(3)} / 上限 ¥{MONTHLY_BUDGET_JPY.toLocaleString("ja-JP")}（超過してもリクエストは継続・監視のみ）
           </p>
         </CardContent>
       </Card>
