@@ -67,6 +67,13 @@ export async function requireAsahikawaGasAdmin(userId: string): Promise<AuthUser
   return user;
 }
 
+/** セッションのuserIdが quest（クウェスト社内アカウント）か確認する（毎回DBの最新状態を見る） */
+export async function requireQuest(userId: string): Promise<AuthUser | null> {
+  const user = await getUserById(userId);
+  if (!user || user.role !== "quest") return null;
+  return user;
+}
+
 /** 管理者が管理する asahikawa-gas の一般アカウント一覧（管理者自身は含まない） */
 export async function listManagedAccounts(): Promise<
   Pick<AuthUser, "id" | "email" | "name">[]

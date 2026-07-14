@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, FileText, Globe, MessageSquare, Puzzle, Users, X } from "lucide-react";
+import { BarChart3, FileText, Globe, KeyRound, MessageSquare, Puzzle, Users, X } from "lucide-react";
 import { LogoutButton } from "@/components/LogoutButton";
 
 // Server Component（layout.tsx）からClient Componentへは関数/クラスを渡せないため、
@@ -15,6 +15,7 @@ const ICONS = {
   globe: Globe,
   chart: BarChart3,
   users: Users,
+  key: KeyRound,
 } as const;
 
 export type IconKey = keyof typeof ICONS;

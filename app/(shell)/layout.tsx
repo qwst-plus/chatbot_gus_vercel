@@ -9,6 +9,7 @@ import { getUserById } from "@/lib/credentials";
 // 埋め込みプレビューは「チャット」ページ内のタブとして統合済み（独立したナビ項目は持たない）
 const internalOnlyItems: NavItem[] = [
   { title: "チャット", href: "/chat", icon: "chat" },
+  { title: "API設定", href: "/apikey", icon: "key" },
 ];
 
 const baseItems: NavItem[] = [
