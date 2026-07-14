@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifySessionValue } from "@/lib/auth";
-import { MONTHLY_BUDGET_JPY } from "@/lib/smartRouting";
+import { MONTHLY_REQUEST_QUOTA } from "@/lib/smartRouting";
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_CLIENT_ID ?? "default";
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
     // 月別トレンドは選択月を含む過去6ヶ月
     const trendStartDate = new Date(Date.UTC(year, month - 6, 1) - JST_OFFSET_MS).toISOString();
 
+    // リクエスト残量は選択月に関わらず常に「実際の今月」を対象にする（毎月1日リセット）
+    const curMonthStart = new Date(Date.UTC(nowJst.getUTCFullYear(), nowJst.getUTCMonth(), 1) - JST_OFFSET_MS).toISOString();
+    const curMonthEnd = new Date(Date.UTC(nowJst.getUTCFullYear(), nowJst.getUTCMonth() + 1, 1) - JST_OFFSET_MS).toISOString();
+
     const [
       monthlyConvs,
       trendConvs,
@@ -44,6 +48,7 @@ export async function GET(req: NextRequest) {
       cacheStatsRows,
       costStatsRows,
       inputMethodRows,
+      curMonthRequestCount,
     ] = await Promise.all([
       // 1. 選択月の会話（サマリー用）
       supabaseAdmin
@@ -152,6 +157,14 @@ export async function GET(req: NextRequest) {
         .eq("role", "user")
         .gte("created_at", startDate)
         .lt("created_at", endDate),
+
+      // 14. リクエスト残量（今月のユーザーメッセージ件数。選択月に関わらず常に実際の今月で集計）
+      supabaseAdmin
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "user")
+        .gte("created_at", curMonthStart)
+        .lt("created_at", curMonthEnd),
     ]);
 
     // ── サマリー集計 ──────────────────────────────────────────
@@ -320,8 +333,17 @@ export async function GET(req: NextRequest) {
       avgCostPerChat:   Math.round(avgCostPerChat * 1000) / 1000,
       estimatedMonthly,
     };
-    // 旭川ガス側には金額を明かさず、予算に対する使用率(%)のみ提供
-    const budgetUsageRate = Math.round((estimatedMonthly / MONTHLY_BUDGET_JPY) * 1000) / 10;
+    // ── リクエスト残量（旭川ガス向け。今月のユーザーメッセージ数=リクエスト数） ──
+    const requestUsed = curMonthRequestCount.count ?? 0;
+    const requestRemaining = Math.max(MONTHLY_REQUEST_QUOTA - requestUsed, 0);
+    const nextMonthFirstDayJst = new Date(Date.UTC(nowJst.getUTCFullYear(), nowJst.getUTCMonth() + 1, 1));
+    const requestResetDate = `${nextMonthFirstDayJst.getUTCFullYear()}-${String(nextMonthFirstDayJst.getUTCMonth() + 1).padStart(2, "0")}-01`;
+    const requestQuota = {
+      used: requestUsed,
+      total: MONTHLY_REQUEST_QUOTA,
+      remaining: requestRemaining,
+      resetDate: requestResetDate,
+    };
 
     // ── 音声入力比率 ──────────────────────────────────────────
     const inputMethodRowsData = inputMethodRows.data ?? [];
@@ -356,8 +378,8 @@ export async function GET(req: NextRequest) {
       model_usage: isQuest ? modelUsage : undefined,
       cache_stats: isQuest ? cacheStats : undefined,
       cost_stats: isQuest ? costStats : undefined,
-      // 旭川ガス側は金額を出さず、予算使用率(%)のみ表示
-      budget_usage_rate: isQuest ? undefined : budgetUsageRate,
+      // 旭川ガス側は金額・モデル名を出さず、リクエスト残量のみ表示
+      request_quota: isQuest ? undefined : requestQuota,
       input_method_stats: inputMethodStats,
     });
   } catch (e: unknown) {

@@ -12,6 +12,9 @@ const EXCHANGE_RATE = 155;
 // 月間APIコストの予算（円）。ダッシュボードの予算使用率表示にも使用
 export const MONTHLY_BUDGET_JPY = 35_000;
 
+// 旭川ガス向けの月間リクエスト上限（1リクエスト=1ユーザーメッセージ）。毎月1日にリセット
+export const MONTHLY_REQUEST_QUOTA = 5_000;
+
 const MODEL_PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
   // Google
   "gemini-2.0-flash-001":       { input: 0.10,  output: 0.40,  cacheRead: 0.025,  cacheWrite: 0.0  },

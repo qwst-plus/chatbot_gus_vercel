@@ -16,7 +16,7 @@ import { TopQuestionsList, TopDocsList, UnusedDocsList } from "@/components/gas-
 import { SavingsWidget } from "@/components/gas-dashboard/savings-widget"
 import { ModeHistoryList } from "@/components/gas-dashboard/mode-history"
 import { SmartRoutingKpiCards, type SmartRoutingStats } from "@/components/gas-dashboard/smart-routing-kpi-cards"
-import { BudgetUsageCard } from "@/components/gas-dashboard/budget-usage-card"
+import { RequestQuotaCard, type RequestQuota } from "@/components/gas-dashboard/request-quota-card"
 
 const YEARS = [2024, 2025, 2026]
 const MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
@@ -44,7 +44,7 @@ type StatsResponse = {
   cache_stats?: { hitCount: number; hitRate: number; savedTokens: number }
   cost_stats?: { totalCostJpy: number; avgCostPerChat: number; estimatedMonthly: number }
   input_method_stats?: { voice: number; text: number; voiceRate: number }
-  budget_usage_rate?: number
+  request_quota?: RequestQuota
 }
 
 function mapToProps(res: StatsResponse, year: number, month: number): GasDashboardProps {
@@ -111,7 +111,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<GasDashboardProps | null>(null)
   const [rawStats, setRawStats] = useState<StatsResponse | null>(null)
   const [smartStats, setSmartStats] = useState<SmartRoutingStats | null>(null)
-  const [budgetUsageRate, setBudgetUsageRate] = useState<number | null>(null)
+  const [requestQuota, setRequestQuota] = useState<RequestQuota | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [clientLabel, setClientLabel] = useState("旭川ガス")
@@ -145,7 +145,7 @@ export default function DashboardPage() {
         } else {
           setSmartStats(null)
         }
-        setBudgetUsageRate(json.budget_usage_rate ?? null)
+        setRequestQuota(json.request_quota ?? null)
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : String(err))
       } finally {
@@ -206,11 +206,14 @@ export default function DashboardPage() {
         ["月末推定コスト(円)", s.cost_stats.estimatedMonthly],
       )
     }
-    if (s.budget_usage_rate !== undefined) {
+    if (s.request_quota !== undefined) {
       csvRows.push(
         [],
-        ["■ 月間予算使用率"],
-        ["予算使用率(%)", s.budget_usage_rate],
+        ["■ 今月のリクエスト残量"],
+        ["利用件数", s.request_quota.used],
+        ["上限件数", s.request_quota.total],
+        ["残量", s.request_quota.remaining],
+        ["リセット日", s.request_quota.resetDate],
       )
     }
     if (s.input_method_stats) {
@@ -343,7 +346,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <GasKpiCards data={data} />
               <PhoneEscalationCard data={data} />
-              {budgetUsageRate !== null && <BudgetUsageCard rate={budgetUsageRate} />}
+              {requestQuota !== null && <RequestQuotaCard quota={requestQuota} />}
             </div>
 
             {smartStats && (
