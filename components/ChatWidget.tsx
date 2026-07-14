@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import {
   CATEGORY_SCENARIOS,
   SCENARIOS,
@@ -101,6 +100,20 @@ export default function ChatWidget({
     "サービスの改善や回答精度の向上のため、Cookieを利用しています。お使いのブラウザの設定によっては、正常に表示・利用できない場合があります。",
     "入力された質問や回答に関するフィードバックは、適宜分析を行い、回答精度の向上を図っていきますので、ご理解とご協力をお願いします。",
   ];
+
+  // 設定画面（チャットアイコン設定）で変更されたアイコン・タイトルを取得（未設定時はデフォルトのまま）
+  const [iconUrl, setIconUrl] = useState("/asahikawagus_chatoboto.png");
+  const [widgetTitle, setWidgetTitle] = useState(title);
+  useEffect(() => {
+    fetch("/api/chat-config")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        if (data.iconUrl) setIconUrl(data.iconUrl);
+        if (data.title) setWidgetTitle(data.title);
+      })
+      .catch(() => {});
+  }, []);
 
   const [open, setOpen] = useState(defaultOpen);
   const [agreed, setAgreed] = useState(false);
@@ -573,12 +586,12 @@ export default function ChatWidget({
           }}
         >
           <span style={fabImgWrap}>
-            <Image
-              src="/asahikawagus_chatoboto.png"
+            {/* eslint-disable-next-line @next/next/no-img-element -- 設定画面でアップロードされた任意ドメインの画像を扱うため */}
+            <img
+              src={iconUrl}
               alt="robot"
               width={56}
               height={56}
-              priority
               style={{ objectFit: "contain" }}
             />
           </span>
@@ -603,17 +616,17 @@ export default function ChatWidget({
                 overflow: "hidden",
               }}
             >
-              <Image
-                src="/asahikawagus_chatoboto.png"
+              {/* eslint-disable-next-line @next/next/no-img-element -- 設定画面でアップロードされた任意ドメインの画像を扱うため */}
+              <img
+                src={iconUrl}
                 alt="robot"
                 width={26}
                 height={26}
-                priority
                 style={{ objectFit: "cover" }}
               />
             </span>
 
-            <div style={headerTitle}>{title}</div>
+            <div style={headerTitle}>{widgetTitle}</div>
 
             <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
               <button
