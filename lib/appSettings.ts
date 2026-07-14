@@ -19,3 +19,7 @@ export async function setSetting(key: string, value: string, updatedBy: string):
     updated_by: updatedBy,
   });
 }
+
+export async function deleteSetting(key: string): Promise<void> {
+  await supabaseAdmin.from("app_settings").delete().eq("key", key);
+}

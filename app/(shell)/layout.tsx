@@ -11,6 +11,7 @@ const internalOnlyItems: NavItem[] = [
   { title: "チャット", href: "/chat", icon: "chat" },
   { title: "API設定", href: "/apikey", icon: "key" },
   { title: "スマートルーティング設定", href: "/settings/smart-routing", icon: "sliders" },
+  { title: "プロンプト設定", href: "/settings/prompt", icon: "prompt" },
 ];
 
 const baseItems: NavItem[] = [

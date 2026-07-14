@@ -16,6 +16,7 @@ import {
 } from "@/lib/log";
 import { getClientConfig } from "@/lib/getClientConfig";
 import { calcComplexityScore, estimateCostJpy, getSmartRoutingThreshold } from "@/lib/smartRouting";
+import { getSystemPromptTemplate, renderSystemPromptTemplate } from "@/lib/systemPrompt";
 import { buildModel, getModelId } from "@/lib/aiProvider";
 import type { ConversationMode, ClientConfig, ChatRequest, ChatResponse } from "@/types/log";
 
@@ -171,22 +172,17 @@ function normalizeHistory(body: ChatBody, maxTurns = 60): ClientMsg[] {
 // ============================================================
 
 function buildSystemPrompt(
+  promptTemplate: string,
   categoryId: string | null,
   mode: ConversationMode,
   config: ClientConfig,
   scenarioContext?: string
 ): string {
-  const base = `あなたは${config.clientId}のカスタマーサポートAIです。
-提供された資料をもとに回答してください。
-資料に根拠がない場合は「お電話でご確認ください」と案内してください。
-回答の末尾には「この回答は解決の参考になりましたか？」を記載してください。
-お電話での案内が必要な場合：${config.phoneNumbers.normal}（${config.businessHours}）
-
-【回答形式の注意】
-- マークダウン記法（##、**、---、|テーブル|など）は使わないでください
-- 絵文字は使わないでください
-- 箇条書きは「・」を使ってください
-- 自然な日本語の文章で回答してください`;
+  const base = renderSystemPromptTemplate(promptTemplate, {
+    clientId: config.clientId,
+    phone: config.phoneNumbers.normal,
+    businessHours: config.businessHours,
+  });
 
   const categoryContext = categoryId
     ? `\nこのユーザーは「${categoryId}」に関心があります。`
@@ -291,7 +287,8 @@ export async function POST(req: NextRequest) {
     const categoryId = body.category_id ?? autoCategory;
 
     // ── 4) システムプロンプト生成 ─────────────────────────────
-    const systemPrompt = buildSystemPrompt(categoryId, mode, config, body.scenario_context);
+    const promptTemplate = await getSystemPromptTemplate();
+    const systemPrompt = buildSystemPrompt(promptTemplate, categoryId, mode, config, body.scenario_context);
 
     // ── 5) スマートルーティング ───────────────────────────────
     const complexityScore = calcComplexityScore(q, retrieved, sessionTurns);
