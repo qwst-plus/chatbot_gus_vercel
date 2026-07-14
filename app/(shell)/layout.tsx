@@ -12,9 +12,9 @@ const internalOnlyItems: NavItem[] = [
 ];
 
 const baseItems: NavItem[] = [
-  { title: "ファイル管理", href: "/ingest", icon: "file" },
-  { title: "Webサイト管理", href: "/websites", icon: "globe" },
   { title: "運用ダッシュボード", href: "/dashboard", icon: "chart" },
+  { title: "Webサイト管理", href: "/websites", icon: "globe" },
+  { title: "ファイル管理", href: "/ingest", icon: "file" },
 ];
 
 const accountsItem: NavItem = { title: "アカウント管理", href: "/dashboard/accounts", icon: "users" };
@@ -25,8 +25,8 @@ export default async function ShellLayout({ children }: { children: React.ReactN
   const user = session ? await getUserById(session.userId) : null;
 
   const items: NavItem[] = [
-    ...(user?.role === "asahikawa-gas" ? [] : internalOnlyItems),
     ...baseItems,
+    ...(user?.role === "asahikawa-gas" ? [] : internalOnlyItems),
     ...(user?.is_admin ? [accountsItem] : []),
   ];
 
