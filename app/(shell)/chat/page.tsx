@@ -44,6 +44,7 @@ function safeJsonParse<T>(raw: string | null): T | null {
 }
 
 export default function ChatPage() {
+  const [tab, setTab] = useState<"test" | "embed">("test");
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
@@ -201,6 +202,27 @@ export default function ChatPage() {
       ? "error"
       : "ready";
 
+  // 埋め込みプレビュー：本番の /embed をそのままiframe表示。左メニューを含む
+  // 通常レイアウトを画面全体のオーバーレイで覆うだけで、/embed 自体（ログイン不要の
+  // 公開ウィジェット）には一切手を加えない。
+  if (tab === "embed") {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-background">
+        <div className="flex items-center gap-3 border-b border-border bg-card px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setTab("test")}
+            className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground hover:bg-accent"
+          >
+            ← テストチャットに戻る
+          </button>
+          <span className="text-sm font-semibold text-foreground">埋め込みプレビュー</span>
+        </div>
+        <iframe src="/embed" className="min-h-0 flex-1 border-0" title="埋め込みプレビュー" />
+      </div>
+    );
+  }
+
   return (
     <ChatContainer>
       {/* 既存コンテナの上に “カード枠” を置く */}
@@ -213,6 +235,23 @@ export default function ChatPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex items-center gap-1 rounded-full border border-border bg-card p-1">
+              <button
+                type="button"
+                onClick={() => setTab("test")}
+                className="rounded-full bg-primary px-3 py-1 font-medium text-primary-foreground"
+              >
+                テストチャット
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("embed")}
+                className="rounded-full px-3 py-1 text-muted-foreground hover:bg-accent"
+              >
+                埋め込みプレビュー
+              </button>
+            </div>
+
             <span className="rounded-full border border-border bg-card px-3 py-1 text-muted-foreground">
               top_k: 8
             </span>

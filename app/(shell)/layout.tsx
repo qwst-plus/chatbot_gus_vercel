@@ -6,8 +6,8 @@ import { verifySessionValue } from "@/lib/auth";
 import { getUserById } from "@/lib/credentials";
 
 // 旭川ガスのアカウントには不要（社内の開発・動作確認用）
+// 埋め込みプレビューは「チャット」ページ内のタブとして統合済み（独立したナビ項目は持たない）
 const internalOnlyItems: NavItem[] = [
-  { title: "埋め込みプレビュー", href: "/embed", icon: "puzzle", external: true },
   { title: "チャット", href: "/chat", icon: "chat" },
 ];
 
