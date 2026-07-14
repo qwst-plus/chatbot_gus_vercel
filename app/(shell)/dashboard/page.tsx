@@ -16,6 +16,7 @@ import { TopQuestionsList, TopDocsList, UnusedDocsList } from "@/components/gas-
 import { SavingsWidget } from "@/components/gas-dashboard/savings-widget"
 import { ModeHistoryList } from "@/components/gas-dashboard/mode-history"
 import { SmartRoutingKpiCards, type SmartRoutingStats } from "@/components/gas-dashboard/smart-routing-kpi-cards"
+import { ModelCostBreakdownCard } from "@/components/gas-dashboard/model-cost-breakdown-card"
 import { RequestQuotaCard, type RequestQuota } from "@/components/gas-dashboard/request-quota-card"
 
 const YEARS = [2024, 2025, 2026]
@@ -352,7 +353,10 @@ export default function DashboardPage() {
             </div>
 
             {smartStats && (
-              <SmartRoutingKpiCards stats={smartStats} />
+              <>
+                <ModelCostBreakdownCard stats={smartStats} />
+                <SmartRoutingKpiCards stats={smartStats} />
+              </>
             )}
 
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
