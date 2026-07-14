@@ -10,6 +10,7 @@ import { getUserById } from "@/lib/credentials";
 const internalOnlyItems: NavItem[] = [
   { title: "チャット", href: "/chat", icon: "chat" },
   { title: "API設定", href: "/apikey", icon: "key" },
+  { title: "スマートルーティング設定", href: "/settings/smart-routing", icon: "sliders" },
 ];
 
 const baseItems: NavItem[] = [

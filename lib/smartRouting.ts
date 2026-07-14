@@ -16,6 +16,20 @@ export const MONTHLY_BUDGET_JPY = 6_000;
 // 旭川ガス向けの月間リクエスト上限（1リクエスト=1ユーザーメッセージ）。毎月1日にリセット
 export const MONTHLY_REQUEST_QUOTA = 5_000;
 
+// スマートルーティングの複雑度しきい値のデフォルト（この値を超えるとFlash、以下はFlash-Lite）
+export const DEFAULT_SMART_ROUTING_THRESHOLD = 0.5;
+const SMART_ROUTING_THRESHOLD_KEY = "smart_routing_threshold";
+
+// 設定画面で保存されたしきい値を取得（未設定・不正値の場合はデフォルトにフォールバック）
+// lib/appSettings.ts はSupabaseクライアントをモジュール読み込み時に初期化するため、
+// このファイルの純粋なユニットテスト（calcComplexityScore等）を壊さないよう動的importにする
+export async function getSmartRoutingThreshold(): Promise<number> {
+  const { getSetting } = await import("@/lib/appSettings");
+  const raw = await getSetting(SMART_ROUTING_THRESHOLD_KEY);
+  const n = raw !== null ? Number(raw) : NaN;
+  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : DEFAULT_SMART_ROUTING_THRESHOLD;
+}
+
 const MODEL_PRICES: Record<string, { input: number; output: number; cacheRead: number; cacheWrite: number }> = {
   // Google
   "gemini-2.0-flash-001":       { input: 0.10,  output: 0.40,  cacheRead: 0.025,  cacheWrite: 0.0  },

@@ -15,7 +15,7 @@ import {
   escalateConversation,
 } from "@/lib/log";
 import { getClientConfig } from "@/lib/getClientConfig";
-import { calcComplexityScore, estimateCostJpy } from "@/lib/smartRouting";
+import { calcComplexityScore, estimateCostJpy, getSmartRoutingThreshold } from "@/lib/smartRouting";
 import { buildModel, getModelId } from "@/lib/aiProvider";
 import type { ConversationMode, ClientConfig, ChatRequest, ChatResponse } from "@/types/log";
 
@@ -295,7 +295,8 @@ export async function POST(req: NextRequest) {
 
     // ── 5) スマートルーティング ───────────────────────────────
     const complexityScore = calcComplexityScore(q, retrieved, sessionTurns);
-    const tier = complexityScore > 0.5 ? "smart" : "fast";
+    const routingThreshold = await getSmartRoutingThreshold();
+    const tier = complexityScore > routingThreshold ? "smart" : "fast";
     const model = buildModel(tier);
     const modelId = getModelId(tier);
 

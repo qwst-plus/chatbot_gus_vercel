@@ -25,5 +25,6 @@ export const config = {
     "/chat-widget",
     "/admin/:path*",
     "/apikey",
+    "/settings/:path*",
   ],
 };
