@@ -164,6 +164,103 @@ export async function deleteManagedAccount(id: string): Promise<MutationResult> 
   return { ok: true };
 }
 
+// ============================================================
+// クウェスト社内アカウント向け：ロール横断のアカウント管理
+// （旭川ガス自身のセルフサービス管理画面(listManagedAccounts等)とは別に、
+//  クウェストが「クライアントユーザー管理」「アカウント管理（クウェスト）」
+//  の両画面から asahikawa-gas / quest どちらのロールも操作できるようにする）
+// ============================================================
+
+export const ROLE_MAX_ACCOUNTS: Record<Role, number> = {
+  "asahikawa-gas": ASAHIKAWA_GAS_MAX_ACCOUNTS,
+  quest: 3,
+};
+
+/** 指定ロールの全アカウント（管理者含む）を一覧取得 */
+export async function listRoleAccounts(
+  role: Role
+): Promise<Pick<AuthUser, "id" | "email" | "name" | "is_admin">[]> {
+  const { data } = await supabaseAdmin
+    .from("auth_users")
+    .select("id, email, name, is_admin")
+    .eq("role", role)
+    .order("created_at", { ascending: true });
+  return data ?? [];
+}
+
+/** 指定ロールに新しいアカウントを作成する（ロールごとの上限まで） */
+export async function createRoleAccount(
+  role: Role,
+  email: string,
+  name: string,
+  password: string
+): Promise<MutationResult<{ id: string }>> {
+  const { count } = await supabaseAdmin
+    .from("auth_users")
+    .select("id", { count: "exact", head: true })
+    .eq("role", role);
+
+  const max = ROLE_MAX_ACCOUNTS[role];
+  if ((count ?? 0) >= max) {
+    return { ok: false, error: `アカウント数の上限（${max}名）に達しています` };
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  if (await getUserByEmail(normalizedEmail)) {
+    return { ok: false, error: "このメールアドレスは既に使用されています" };
+  }
+
+  const passwordHash = await hashPassword(password);
+  const { data, error } = await supabaseAdmin
+    .from("auth_users")
+    .insert({
+      role,
+      email: normalizedEmail,
+      name,
+      is_admin: false,
+      password_hash: passwordHash,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "作成に失敗しました" };
+  }
+  return { ok: true, id: data.id };
+}
+
+/** 指定ロールのアカウントを更新する（管理者アカウントも対象） */
+export async function updateRoleAccount(
+  role: Role,
+  id: string,
+  updates: { email?: string; name?: string; password?: string }
+): Promise<MutationResult> {
+  const target = await getUserById(id);
+  if (!target || target.role !== role) {
+    return { ok: false, error: "対象のアカウントが見つかりません" };
+  }
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (updates.email) patch.email = updates.email.trim().toLowerCase();
+  if (updates.name !== undefined) patch.name = updates.name;
+  if (updates.password) patch.password_hash = await hashPassword(updates.password);
+
+  const { error } = await supabaseAdmin.from("auth_users").update(patch).eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/** 指定ロールのアカウントを削除する（唯一の管理者アカウントを誤って消さないよう、管理者は対象外） */
+export async function deleteRoleAccount(role: Role, id: string): Promise<MutationResult> {
+  const target = await getUserById(id);
+  if (!target || target.role !== role || target.is_admin) {
+    return { ok: false, error: "対象のアカウントが見つかりません（管理者アカウントは削除できません）" };
+  }
+  const { error } = await supabaseAdmin.from("auth_users").delete().eq("id", id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
 /** 生のリセットトークンを発行し、そのハッシュと有効期限をDBに保存する */
 export async function createPasswordResetToken(userId: string): Promise<string> {
   const rawToken = randomBytes(32).toString("hex");
