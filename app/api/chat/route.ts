@@ -17,6 +17,7 @@ import {
 import { getClientConfig } from "@/lib/getClientConfig";
 import { calcComplexityScore, estimateCostJpy, getSmartRoutingThreshold } from "@/lib/smartRouting";
 import { getSystemPromptTemplate, renderSystemPromptTemplate } from "@/lib/systemPrompt";
+import { getEmergencyKeywords } from "@/lib/emergencyKeywords";
 import { buildModel, getModelId } from "@/lib/aiProvider";
 import type { ConversationMode, ClientConfig, ChatRequest, ChatResponse } from "@/types/log";
 
@@ -265,9 +266,10 @@ export async function POST(req: NextRequest) {
     const history = normalizeHistory(body, 60);
     const sessionTurns = Math.floor(history.length / 2) + 1;
 
-    // ── 3) エスカレーション判定（クライアント設定のキーワード使用）──
+    // ── 3) エスカレーション判定（設定画面で上書き可能なキーワードを使用）──
+    const emergencyKeywords = await getEmergencyKeywords(config.emergencyKeywords);
     const matchedKeyword =
-      config.emergencyKeywords.find((kw) => q.includes(kw)) ?? null;
+      emergencyKeywords.find((kw) => q.includes(kw)) ?? null;
     const confidenceScore = retrieved.length > 0 ? retrieved[0].similarity : 0;
     const isLowConfidence = confidenceScore < 0.5 && retrieved.length > 0;
 
