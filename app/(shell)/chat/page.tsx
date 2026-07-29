@@ -300,7 +300,7 @@ export default function ChatPage() {
                 <div className="text-sm text-muted-foreground">
                   例：
                   <span className="text-foreground">
-                    「はたらくあさひかわとは？」
+                    「旭川ガスとは？」
                   </span>
                 </div>
               ) : null}
