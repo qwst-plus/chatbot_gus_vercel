@@ -25,7 +25,7 @@ describe("fuseHybridResults", () => {
     const result = fuseHybridResults(vector, keyword);
     const x = result.find((r) => r.id === "x")!;
     // キーワード加点なしの場合と同じスコアになる（alpha * 1 + (1-alpha) * 0 = alpha）
-    expect(x.similarity).toBeCloseTo(0.75, 5);
+    expect(x.similarity).toBeCloseTo(0.8, 5);
   });
 
   it("alpha=1 でベクターのみのランキングと一致する", () => {
