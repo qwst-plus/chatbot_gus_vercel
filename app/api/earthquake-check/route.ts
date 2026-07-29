@@ -1,6 +1,6 @@
 // app/api/earthquake-check/route.ts
 // Vercel Cron（毎分実行）から呼ばれる地震監視エンドポイント
-// P2P地震情報APIをポーリングし、北海道で震度4以上（既定値。EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE
+// P2P地震情報APIをポーリングし、日本全域で震度4以上（既定値。EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE
 // 環境変数で一時的に変更可）を検知したら緊急モードを発動する
 // 最後の更新から AUTO_CLEAR_HOURS 時間経過で自動解除
 
@@ -20,7 +20,7 @@ const EARTHQUAKE_SCALE_THRESHOLD_DEFAULT = 40;
 const EARTHQUAKE_SCALE_THRESHOLD =
   Number(process.env.EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE) || EARTHQUAKE_SCALE_THRESHOLD_DEFAULT;
 const LOOKBACK_MINUTES = 3;            // Cronの間隔より少し長め（取りこぼし防止）
-const TARGET_PREF = "北海道";
+const TARGET_PREF: string | null = null; // null = 都道府県を絞らず日本全域を対象にする
 const EARTHQUAKE_SITE_ID = -1;
 
 // 震度スケール → 表示文字列
@@ -50,18 +50,19 @@ type P2PPoint = {
   scale: number;
 };
 
+// 注意: P2P地震情報APIの実レスポンスは earthquake/points がトップレベルに直接入っており、
+// dataというラッパーは存在しない（以前はevent.data.pointsを参照しておりpointsが常に
+// 空配列になる＝実地震を一度も検知できないバグがあった。実レスポンスを直接確認して修正）
 type P2PEvent = {
   id: string;
   code: number;
   time: string; // "YYYY/MM/DD HH:mm:ss"
-  data?: {
-    earthquake?: {
-      time?: string;
-      hypocenter?: { name?: string };
-      maxScale?: number;
-    };
-    points?: P2PPoint[];
+  earthquake?: {
+    time?: string;
+    hypocenter?: { name?: string };
+    maxScale?: number;
   };
+  points?: P2PPoint[];
 };
 
 // ── P2P地震情報 API から最新データ取得 ────────────────
@@ -78,7 +79,7 @@ async function fetchRecentEarthquakes(): Promise<P2PEvent[]> {
   return res.json() as Promise<P2PEvent[]>;
 }
 
-// ── 北海道で震度閾値以上の地震を検索 ─────────────────
+// ── 日本全域（TARGET_PREFがnullの場合は都道府県を絞らない）で震度閾値以上の地震を検索 ─
 function findRelevantEarthquake(
   events: P2PEvent[]
 ): { intensity: string; area: string } | null {
@@ -89,19 +90,19 @@ function findRelevantEarthquake(
     const eventTime = new Date(event.time.replace(/\//g, "-").replace(" ", "T"));
     if (isNaN(eventTime.getTime()) || eventTime < cutoff) continue;
 
-    const points: P2PPoint[] = event.data?.points ?? [];
-    const hokkaido = points.filter(
-      (p) => p.pref === TARGET_PREF && p.scale >= EARTHQUAKE_SCALE_THRESHOLD
+    const points: P2PPoint[] = event.points ?? [];
+    const matchedPoints = points.filter(
+      (p) => (TARGET_PREF === null || p.pref === TARGET_PREF) && p.scale >= EARTHQUAKE_SCALE_THRESHOLD
     );
-    if (hokkaido.length === 0) continue;
+    if (matchedPoints.length === 0) continue;
 
     // 最大震度の観測点を代表エリアとする
-    const maxScale = Math.max(...hokkaido.map((p) => p.scale));
-    const maxPoint = hokkaido.find((p) => p.scale === maxScale)!;
+    const maxScale = Math.max(...matchedPoints.map((p) => p.scale));
+    const maxPoint = matchedPoints.find((p) => p.scale === maxScale)!;
 
     return {
       intensity: SCALE_LABELS[maxScale] ?? String(maxScale),
-      area: maxPoint.addr || TARGET_PREF,
+      area: maxPoint.addr || maxPoint.pref || "日本国内",
     };
   }
   return null;
