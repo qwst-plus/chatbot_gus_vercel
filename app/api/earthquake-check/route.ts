@@ -1,6 +1,7 @@
 // app/api/earthquake-check/route.ts
 // Vercel Cron（毎分実行）から呼ばれる地震監視エンドポイント
-// P2P地震情報APIをポーリングし、北海道で震度4以上を検知したら緊急モードを発動する
+// P2P地震情報APIをポーリングし、北海道で震度4以上（既定値。EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE
+// 環境変数で一時的に変更可）を検知したら緊急モードを発動する
 // 最後の更新から AUTO_CLEAR_HOURS 時間経過で自動解除
 
 import { NextRequest, NextResponse } from "next/server";
@@ -11,7 +12,13 @@ export const dynamic = "force-dynamic";
 
 // ── 設定 ──────────────────────────────────────────────
 const AUTO_CLEAR_HOURS = 2;           // 自動解除までの時間
-const EARTHQUAKE_SCALE_THRESHOLD = 40; // 震度4以上（40=4, 45=5弱, 50=5強, 55=6弱, 60=6強, 70=7）
+// 震度4以上が本番設定（40=4, 45=5弱, 50=5強, 55=6弱, 60=6強, 70=7）。
+// EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE 環境変数で一時的に上書き可能
+// （実地震での本番テスト用。テストが終わったらVercelの環境変数を削除するだけで
+// 元の震度4設定に戻る。コード側の本番デフォルトは変更しない）
+const EARTHQUAKE_SCALE_THRESHOLD_DEFAULT = 40;
+const EARTHQUAKE_SCALE_THRESHOLD =
+  Number(process.env.EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE) || EARTHQUAKE_SCALE_THRESHOLD_DEFAULT;
 const LOOKBACK_MINUTES = 3;            // Cronの間隔より少し長め（取りこぼし防止）
 const TARGET_PREF = "北海道";
 const EARTHQUAKE_SITE_ID = -1;
