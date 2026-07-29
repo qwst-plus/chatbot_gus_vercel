@@ -28,7 +28,7 @@ const EARTHQUAKE_SITE_ID = -1;
 export async function PATCH(req: NextRequest) {
   const adminSecret = process.env.ADMIN_SECRET;
   const authHeader = req.headers.get("authorization");
-  if (adminSecret && authHeader !== `Bearer ${adminSecret}`) {
+  if (!adminSecret || authHeader !== `Bearer ${adminSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

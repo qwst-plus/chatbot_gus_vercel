@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
   // Vercel Cron は Authorization: Bearer <CRON_SECRET> を自動付与する
   const authHeader = req.headers.get("authorization");
   const cronSecret = env("CRON_SECRET");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -137,8 +137,10 @@ export async function GET(req: NextRequest) {
     }
 
     // ── 3) P2P地震情報APIをポーリング ────────────────
-    // ?mock=1 はローカル開発専用（CRON_SECRETが未設定の場合のみ有効）
-    const isMock = !cronSecret && req.nextUrl.searchParams.get("mock") === "1";
+    // ?mock=1 はローカル開発専用（本番環境では無効。CRON_SECRET認証は上で必須化済み）
+    const isMock =
+      process.env.NODE_ENV !== "production" &&
+      req.nextUrl.searchParams.get("mock") === "1";
     let detected: { intensity: string; area: string } | null = null;
 
     if (isMock) {
