@@ -159,13 +159,15 @@ export default function ChatWidget({
     }
   }, []);
 
-  // チャット開放時に取得、以降5分ごとにポーリング
+  // マウント時から取得、以降30秒ごとにポーリング（開閉状態に関わらず継続）。
+  // バックエンドの検知（Vercel Cron・1分間隔）に対してフロントの反映が
+  // 遅れすぎないように、かつ「まだ一度も開いていない訪問者」でも緊急時に
+  // 自動展開できるよう、openの状態に関わらず常時ポーリングする
   useEffect(() => {
-    if (!open) return;
     checkEarthquakeStatus();
-    const timer = setInterval(checkEarthquakeStatus, 5 * 60 * 1000);
+    const timer = setInterval(checkEarthquakeStatus, 30 * 1000);
     return () => clearInterval(timer);
-  }, [open, checkEarthquakeStatus]);
+  }, [checkEarthquakeStatus]);
 
   // 緊急モード検知：自動展開 + 親フレーム（FloatingChatLauncher）に通知
   useEffect(() => {
@@ -552,8 +554,8 @@ export default function ChatWidget({
     padding: 0,
   };
 
-  // 画像の「■感」を減らすための保険（角を丸く＋収まりを良くする）
-  // ※ 元画像が白背景JPEGでも「円枠＋白背景」に吸収されるので、見た目は整います
+  // 画像の「■感」を減らすための保険（角を丸く）。
+  // imgはobjectFit:"cover"で円を隙間なく埋める（正方形以外の画像でも中央基準で切り抜かれる）
   const fabImgWrap: React.CSSProperties = {
     width: 56,
     height: 56,
@@ -592,7 +594,7 @@ export default function ChatWidget({
               alt="robot"
               width={56}
               height={56}
-              style={{ objectFit: "contain" }}
+              style={{ objectFit: "cover" }}
             />
           </span>
         </button>
