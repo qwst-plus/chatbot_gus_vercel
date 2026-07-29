@@ -21,6 +21,7 @@ import { fuseHybridResults } from "@/lib/hybridSearch";
 import { getSystemPromptTemplate, renderSystemPromptTemplate } from "@/lib/systemPrompt";
 import { getEmergencyKeywords } from "@/lib/emergencyKeywords";
 import { buildModel, getModelId } from "@/lib/aiProvider";
+import { decryptSecret } from "@/lib/settingsCrypto";
 import type { ConversationMode, ClientConfig, ChatRequest, ChatResponse } from "@/types/log";
 
 export const runtime = "nodejs";
@@ -73,6 +74,24 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 const RPC_NAME = env("SUPABASE_MATCH_RPC") ?? "match_documents";
 const KEYWORD_RPC_NAME = env("SUPABASE_KEYWORD_RPC") ?? "match_documents_keyword";
 const MATCH_THRESHOLD = Number(env("SUPABASE_MATCH_THRESHOLD") ?? "0");
+const GEMINI_KEY_SETTING = "gemini_api_key";
+
+// 設定画面（/apikey）で保存されたGemini API Keyがあれば復号して返す。
+// 未設定・復号失敗時はundefined（buildModel側で環境変数GEMINI_API_KEYにフォールバックする）
+async function getCustomGeminiApiKey(): Promise<string | undefined> {
+  const { data } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", GEMINI_KEY_SETTING)
+    .maybeSingle();
+  if (!data?.value) return undefined;
+  try {
+    return decryptSecret(data.value);
+  } catch (e) {
+    console.warn("[chat] Gemini API Keyの復号に失敗、環境変数にフォールバックします:", e);
+    return undefined;
+  }
+}
 
 // ============================================================
 // RAGコア（埋め込み・検索）
@@ -339,7 +358,8 @@ export async function POST(req: NextRequest) {
     const complexityScore = calcComplexityScore(q, retrieved, sessionTurns);
     const routingThreshold = await getSmartRoutingThreshold();
     const tier = complexityScore > routingThreshold ? "smart" : "fast";
-    const model = buildModel(tier);
+    const customApiKey = await getCustomGeminiApiKey();
+    const model = buildModel(tier, customApiKey);
     const modelId = getModelId(tier);
 
     // ── 6) 回答生成（AI SDK・Gemini）──────────────────────────

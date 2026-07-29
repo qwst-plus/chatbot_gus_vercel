@@ -132,9 +132,8 @@ export default function ApiKeyPage() {
       )}
 
       <p className="mt-6 text-sm text-muted-foreground">
-        ※ ここで保存した値はSupabaseに暗号化保存されるのみです。実際のチャット応答には反映されません
-        （引き続きRender/Vercelの環境変数 GEMINI_API_KEY が使われます）。
-        実際にキーを切り替える場合は、環境変数側も別途更新してください。
+        ※ ここで保存した値はSupabaseに暗号化保存され、次回以降のチャット応答生成から
+        このAPIキーが使用されます（保存していない場合は引き続き環境変数 GEMINI_API_KEY が使われます）。
       </p>
     </div>
   );

@@ -1,7 +1,8 @@
 // app/api/settings/gemini-key/route.ts
 // クウェスト社内アカウント専用：Gemini API Keyの保存状況確認・更新。
-// 保存はSupabase(app_settings)への暗号化保存のみで、実際のチャット応答は
-// 引き続きRender/Vercelの環境変数(GEMINI_API_KEY)を使用する（即時反映はしない）。
+// Supabase(app_settings)へ暗号化保存し、次回以降のチャット応答生成から
+// このキーが使用される（lib/aiProvider.ts の buildModel を参照）。
+// 未保存の場合は引き続き環境変数(GEMINI_API_KEY)にフォールバックする。
 import { NextRequest, NextResponse } from "next/server";
 import { verifySessionValue } from "@/lib/auth";
 import { requireQuest } from "@/lib/credentials";
