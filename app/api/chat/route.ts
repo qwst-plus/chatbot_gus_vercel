@@ -330,8 +330,12 @@ export async function POST(req: NextRequest) {
 
     // ── 3) エスカレーション判定（設定画面で上書き可能なキーワードを使用）──
     const emergencyKeywords = await getEmergencyKeywords(config.emergencyKeywords);
+    // ★ 複数の緊急ワードが同時にマッチする場合、最も長い（＝より具体的な）ものを優先する。
+    // 短い一般的なキーワードが無関係な文脈でも一致してしまう誤判定を減らすため
     const matchedKeyword =
-      emergencyKeywords.find((kw) => q.includes(kw)) ?? null;
+      emergencyKeywords
+        .filter((kw) => q.includes(kw))
+        .sort((a, b) => b.length - a.length)[0] ?? null;
     const confidenceScore = retrieved.length > 0 ? retrieved[0].similarity : 0;
     const isLowConfidence = confidenceScore < 0.5 && retrieved.length > 0;
 
@@ -339,14 +343,23 @@ export async function POST(req: NextRequest) {
     // 緊急キーワードにマッチ → キーワード名をそのままカテゴリに（例: "ガス漏れ"）
     // それ以外 → topicKeywords でトピック分類（例: "料金・請求"）
     // どれにも該当しない → "その他"
+    // ★ topicKeywordsも同様に、最も長い（＝より具体的な）キーワードでマッチした
+    // トピックを優先する（例: "機器"より"ガス機器"の方が優先される）
     let autoCategory: string;
     if (matchedKeyword) {
       autoCategory = matchedKeyword;
     } else {
-      const matchedTopic = config.topicKeywords.find((t) =>
-        t.keywords.some((kw) => q.includes(kw))
-      );
-      autoCategory = matchedTopic?.label ?? "その他";
+      let bestTopicLabel: string | null = null;
+      let bestMatchLen = 0;
+      for (const t of config.topicKeywords) {
+        for (const kw of t.keywords) {
+          if (kw.length > bestMatchLen && q.includes(kw)) {
+            bestTopicLabel = t.label;
+            bestMatchLen = kw.length;
+          }
+        }
+      }
+      autoCategory = bestTopicLabel ?? "その他";
     }
     // クライアントからのcategory_idが文字化け（不正なバイト列がU+FFFDに置換された状態）の場合は
     // ダッシュボードに文字化けカテゴリが表示されないよう、自動判定側にフォールバックする

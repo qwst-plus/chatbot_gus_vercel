@@ -15,6 +15,7 @@ import { TopicDistributionChart } from "@/components/gas-dashboard/distribution-
 import { TopQuestionsList, TopDocsList, UnusedDocsList } from "@/components/gas-dashboard/docs-lists"
 import { SavingsWidget } from "@/components/gas-dashboard/savings-widget"
 import { ModeHistoryList } from "@/components/gas-dashboard/mode-history"
+import { EmergencyModeControl } from "@/components/gas-dashboard/emergency-mode-control"
 import { SmartRoutingKpiCards, type SmartRoutingStats } from "@/components/gas-dashboard/smart-routing-kpi-cards"
 import { ModelCostBreakdownCard } from "@/components/gas-dashboard/model-cost-breakdown-card"
 import { RequestQuotaCard, type RequestQuota } from "@/components/gas-dashboard/request-quota-card"
@@ -116,12 +117,16 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [clientLabel, setClientLabel] = useState("旭川ガス")
+  const [isQuest, setIsQuest] = useState(false)
 
   useEffect(() => {
     fetch("/api/auth/me")
       .then((res) => (res.ok ? res.json() : null))
       .then((me) => {
-        if (me?.role === "quest") setClientLabel("クウェスト")
+        if (me?.role === "quest") {
+          setClientLabel("クウェスト")
+          setIsQuest(true)
+        }
       })
       .catch(() => {})
   }, [])
@@ -376,6 +381,8 @@ export default function DashboardPage() {
             <UnusedDocsList docs={data.unusedDocs} />
 
             <SavingsWidget resolvedCount={data.monthlyStats.resolvedCount} />
+
+            {isQuest && <EmergencyModeControl />}
 
             <ModeHistoryList history={data.modeHistory} />
           </div>

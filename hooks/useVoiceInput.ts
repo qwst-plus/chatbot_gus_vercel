@@ -1,5 +1,6 @@
 // hooks/useVoiceInput.ts
-// 音声入力フック：マイクボタンを1回押すと録音開始、1.5秒間無音が続くと自動で録音停止・送信する
+// 音声入力フック：マイクボタンを1回押すと録音開始。1.5秒間無音が続くと自動で録音停止・送信、
+// 録音中にもう一度押すと「話し終わった」の合図として無音を待たずに確定・即送信する
 "use client";
 
 import { useCallback, useRef, useState } from "react";
@@ -72,16 +73,18 @@ export function useVoiceInput(
     cleanup();
   }, [cleanup]);
 
-  // 手動キャンセル（録音中にボタンを再度押した場合）
+  // 手動キャンセル（録音を破棄する。現在はUIから直接は呼んでいないが、
+  // 将来キャンセル専用ボタンを追加する場合のために残している）
   const cancelRecording = useCallback(() => {
     isCancelledRef.current = true;
     stopRecording();
   }, [stopRecording]);
 
   const startRecording = useCallback(async () => {
-    // 録音中なら手動キャンセル
+    // 録音中にボタンを再度押した場合は「話し終わった」の合図として
+    // 確定・即送信する（無音検知を待たずに済む）
     if (isRecording) {
-      cancelRecording();
+      stopRecording();
       return;
     }
 
@@ -190,7 +193,7 @@ export function useVoiceInput(
         }
       }
     }
-  }, [isRecording, cancelRecording, stopRecording, cleanup, onTranscribed]);
+  }, [isRecording, stopRecording, cleanup, onTranscribed]);
 
   return { isRecording, isProcessing, volumeLevel, error, startRecording, cancelRecording };
 }
