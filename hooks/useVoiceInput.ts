@@ -1,5 +1,5 @@
 // hooks/useVoiceInput.ts
-// 音声入力フック：マイクボタンを1回押すと録音開始、3秒間無音が続くと自動で録音停止・送信する
+// 音声入力フック：マイクボタンを1回押すと録音開始、1.5秒間無音が続くと自動で録音停止・送信する
 "use client";
 
 import { useCallback, useRef, useState } from "react";
@@ -7,7 +7,7 @@ import type { InputMethod, VoiceResponse } from "@/types/log";
 
 // 無音検知の設定
 const SILENCE_THRESHOLD = 10; // 音量の閾値（0〜255スケール）。周囲が静かな場合は下げる
-const SILENCE_DURATION_MS = 3000; // この時間（ミリ秒）無音が続いたら録音停止
+const SILENCE_DURATION_MS = 1500; // この時間（ミリ秒）無音が続いたら録音停止
 const CHECK_INTERVAL_MS = 100; // 音量チェックの間隔（ミリ秒）
 
 type UseVoiceInputReturn = {
