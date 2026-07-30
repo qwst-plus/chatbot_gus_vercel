@@ -285,11 +285,14 @@ export default function ChatPage() {
               <div className="mb-3 rounded-xl border border-red-300 bg-red-50 p-3 flex items-start gap-3 animate-pulse">
                 <span className="text-2xl leading-none">🚨</span>
                 <div className="flex-1">
-                  <p className="text-red-700 font-bold text-sm">緊急地震情報 — 震度{quakeStatus.intensity}を検知</p>
-                  <p className="text-red-600 text-xs mt-0.5">{quakeStatus.area}</p>
+                  <p className="text-red-700 font-bold text-sm">緊急地震速報：震度{quakeStatus.intensity}（{quakeStatus.area}）</p>
                   <p className="text-red-700 text-xs mt-1">
-                    ガスメーターが遮断された場合は復帰手順をご確認ください。
-                    緊急の場合は <span className="font-bold text-red-800">{EMERGENCY_PHONE}（24時間）</span> へ。
+                    ガスメーターの遮断ボタンを押してガスを止めてください。<br />
+                    再点火は揺れが収まり安全を確認してから行ってください。
+                  </p>
+                  <p className="text-red-800 text-xs font-bold mt-1">
+                    緊急ガス漏れ通報（24時間対応）<br />
+                    {EMERGENCY_PHONE}
                   </p>
                 </div>
               </div>
@@ -354,8 +357,8 @@ export default function ChatPage() {
                 <div className="mt-3 rounded-xl border-2 border-red-500 bg-red-50 p-3 flex items-start gap-3">
                   <span className="text-2xl leading-none">⚠️</span>
                   <div>
-                    <p className="text-red-700 font-bold text-sm">ガス漏れの疑いがある場合は、すぐにご連絡ください</p>
-                    <p className="text-red-800 text-xl font-bold tracking-wider mt-1">{EMERGENCY_PHONE}</p>
+                    <p className="text-red-700 font-bold text-sm">⚠️ ガス漏れの疑いがある場合は今すぐご連絡ください</p>
+                    <p className="text-red-800 text-base font-bold tracking-wider mt-1">{EMERGENCY_PHONE}</p>
                     <p className="text-red-600 text-xs mt-1">24時間受付 ／ 火気厳禁・窓を開けて換気してください</p>
                   </div>
                 </div>
