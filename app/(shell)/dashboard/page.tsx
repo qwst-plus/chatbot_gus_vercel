@@ -118,6 +118,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [clientLabel, setClientLabel] = useState("旭川ガス")
   const [isQuest, setIsQuest] = useState(false)
+  const [canManageEmergencyMode, setCanManageEmergencyMode] = useState(false)
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -126,6 +127,9 @@ export default function DashboardPage() {
         if (me?.role === "quest") {
           setClientLabel("クウェスト")
           setIsQuest(true)
+        }
+        if (me?.role === "quest" || (me?.role === "asahikawa-gas" && me?.isAdmin)) {
+          setCanManageEmergencyMode(true)
         }
       })
       .catch(() => {})
@@ -382,7 +386,7 @@ export default function DashboardPage() {
 
             <SavingsWidget resolvedCount={data.monthlyStats.resolvedCount} />
 
-            {isQuest && <EmergencyModeControl />}
+            {canManageEmergencyMode && <EmergencyModeControl />}
 
             <ModeHistoryList history={data.modeHistory} />
           </div>

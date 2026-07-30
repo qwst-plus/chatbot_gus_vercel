@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { verifySessionValue } from "@/lib/auth";
-import { requireQuest } from "@/lib/credentials";
+import { requireAsahikawaGasAdmin, requireQuest } from "@/lib/credentials";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,23 +27,25 @@ const EARTHQUAKE_SITE_ID = -1;
 // ── PATCH: 管理者による手動操作（解除 / タイマー延長）──────────────────
 // 解除:  PATCH { "action": "clear" }
 // 延長:  PATCH { "action": "extend" }  → updated_at を現在時刻にリセット（新たに2時間）
-// 認証は以下のいずれか: ① ADMIN_SECRET（外部/API利用）② クウェスト社内アカウントの
-// ログインセッション（運用ダッシュボードの手動操作ボタンから、ADMIN_SECRETをブラウザに
-// 露出させずに呼べるようにするため）
+// 認証は以下のいずれか: ① ADMIN_SECRET（外部/API利用）② クウェスト社内アカウントまたは
+// 旭川ガス側の管理者アカウントのログインセッション（運用ダッシュボードの手動操作ボタンから、
+// ADMIN_SECRETをブラウザに露出させずに呼べるようにするため）
 export async function PATCH(req: NextRequest) {
   const adminSecret = process.env.ADMIN_SECRET;
   const authHeader = req.headers.get("authorization");
   const hasValidSecret = !!adminSecret && authHeader === `Bearer ${adminSecret}`;
 
-  let isQuestUser = false;
+  let isAuthorizedUser = false;
   if (!hasValidSecret) {
     const session = await verifySessionValue(req.cookies.get("session")?.value);
     if (session) {
-      isQuestUser = !!(await requireQuest(session.userId));
+      isAuthorizedUser =
+        !!(await requireQuest(session.userId)) ||
+        !!(await requireAsahikawaGasAdmin(session.userId));
     }
   }
 
-  if (!hasValidSecret && !isQuestUser) {
+  if (!hasValidSecret && !isAuthorizedUser) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
