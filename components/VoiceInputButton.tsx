@@ -15,7 +15,7 @@ export function VoiceInputButton({ onTranscribed, disabled = false, idleBg = "#e
 
   return (
     <div style={{ position: "relative", display: "inline-flex", flexDirection: "column", alignItems: "center" }}>
-      {/* マイクボタン：1回押して録音開始・3秒無音で自動停止 */}
+      {/* マイクボタン：1回押して録音開始・1.5秒無音で自動停止 */}
       <button
         type="button"
         onClick={(e) => {
@@ -27,8 +27,8 @@ export function VoiceInputButton({ onTranscribed, disabled = false, idleBg = "#e
           isProcessing
             ? "音声を処理中..."
             : isRecording
-            ? "録音中（3秒無音で自動送信）"
-            : "音声入力（押して話す・3秒無音で自動送信）"
+            ? "録音中（1.5秒無音で自動送信）"
+            : "音声入力（押して話す・1.5秒無音で自動送信）"
         }
         style={{
           width: 40,
