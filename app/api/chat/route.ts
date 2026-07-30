@@ -348,7 +348,10 @@ export async function POST(req: NextRequest) {
       );
       autoCategory = matchedTopic?.label ?? "その他";
     }
-    const categoryId = body.category_id ?? autoCategory;
+    // クライアントからのcategory_idが文字化け（不正なバイト列がU+FFFDに置換された状態）の場合は
+    // ダッシュボードに文字化けカテゴリが表示されないよう、自動判定側にフォールバックする
+    const isCorrupted = typeof body.category_id === "string" && body.category_id.includes("�");
+    const categoryId = !isCorrupted && body.category_id ? body.category_id : autoCategory;
 
     // ── 4) システムプロンプト生成 ─────────────────────────────
     const promptTemplate = await getSystemPromptTemplate();
