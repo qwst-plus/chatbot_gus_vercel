@@ -1,6 +1,7 @@
 // app/api/earthquake-check/route.ts
 // Vercel Cron（毎分実行）から呼ばれる地震監視エンドポイント
-// P2P地震情報APIをポーリングし、日本全域で震度4以上（既定値。EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE
+// P2P地震情報APIをポーリングし、旭川市・江別市で震度4以上（既定値。
+// EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE / EARTHQUAKE_TARGET_AREAS_OVERRIDE
 // 環境変数で一時的に変更可）を検知したら緊急モードを発動する
 // 最後の更新から AUTO_CLEAR_HOURS 時間経過で自動解除
 
@@ -14,13 +15,25 @@ export const dynamic = "force-dynamic";
 const AUTO_CLEAR_HOURS = 2;           // 自動解除までの時間
 // 震度4以上が本番設定（40=4, 45=5弱, 50=5強, 55=6弱, 60=6強, 70=7）。
 // EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE 環境変数で一時的に上書き可能
-// （実地震での本番テスト用。テストが終わったらVercelの環境変数を削除するだけで
+// （テスト期間・実地震での本番テスト用。Vercelの環境変数を削除するだけで
 // 元の震度4設定に戻る。コード側の本番デフォルトは変更しない）
 const EARTHQUAKE_SCALE_THRESHOLD_DEFAULT = 40;
 const EARTHQUAKE_SCALE_THRESHOLD =
   Number(process.env.EARTHQUAKE_SCALE_THRESHOLD_OVERRIDE) || EARTHQUAKE_SCALE_THRESHOLD_DEFAULT;
 const LOOKBACK_MINUTES = 3;            // Cronの間隔より少し長め（取りこぼし防止）
-const TARGET_PREF: string | null = null; // null = 都道府県を絞らず日本全域を対象にする
+
+// 旭川市・江別市のみが本番設定。EARTHQUAKE_TARGET_AREAS_OVERRIDE 環境変数で一時的に上書き可能
+// （"ALL" で地域を絞らず日本全域、カンマ区切りの地名リストでも上書き可。
+// テストが終わったらVercelの環境変数を削除するだけで元の旭川・江別設定に戻る）
+const EARTHQUAKE_TARGET_AREAS_DEFAULT = ["旭川", "江別"];
+const targetAreasOverrideRaw = process.env.EARTHQUAKE_TARGET_AREAS_OVERRIDE;
+const EARTHQUAKE_TARGET_AREAS: string[] | null =
+  targetAreasOverrideRaw === undefined || targetAreasOverrideRaw.trim() === ""
+    ? EARTHQUAKE_TARGET_AREAS_DEFAULT
+    : targetAreasOverrideRaw.trim().toUpperCase() === "ALL"
+      ? null // null = 地域を絞らず日本全域を対象にする
+      : targetAreasOverrideRaw.split(",").map((s) => s.trim()).filter(Boolean);
+
 const EARTHQUAKE_SITE_ID = -1;
 
 // 震度スケール → 表示文字列
@@ -79,7 +92,7 @@ async function fetchRecentEarthquakes(): Promise<P2PEvent[]> {
   return res.json() as Promise<P2PEvent[]>;
 }
 
-// ── 日本全域（TARGET_PREFがnullの場合は都道府県を絞らない）で震度閾値以上の地震を検索 ─
+// ── 対象地域（EARTHQUAKE_TARGET_AREASがnullの場合は地域を絞らず日本全域）で震度閾値以上の地震を検索 ─
 function findRelevantEarthquake(
   events: P2PEvent[]
 ): { intensity: string; area: string } | null {
@@ -92,7 +105,10 @@ function findRelevantEarthquake(
 
     const points: P2PPoint[] = event.points ?? [];
     const matchedPoints = points.filter(
-      (p) => (TARGET_PREF === null || p.pref === TARGET_PREF) && p.scale >= EARTHQUAKE_SCALE_THRESHOLD
+      (p) =>
+        (EARTHQUAKE_TARGET_AREAS === null ||
+          EARTHQUAKE_TARGET_AREAS.some((area) => p.addr?.includes(area) || p.pref?.includes(area))) &&
+        p.scale >= EARTHQUAKE_SCALE_THRESHOLD
     );
     if (matchedPoints.length === 0) continue;
 
